@@ -7,6 +7,21 @@ go get github.com/trusch/vpntool
 ```
 
 ## Usage
+```
+Usage of vpntool:
+  -clients string
+    	add client(s) to vpn (accepts comma separated list)
+  -deploy string
+    	deploy this entity to --url
+  -init
+    	init vpn and create server
+  -out string
+    	ovpn directory (default ".")
+  -pki string
+    	pki directory (default "pki")
+  -url string
+    	url to use
+```
 
 ### Initialize
 ```
@@ -32,9 +47,3 @@ vpntool --deploy clientA --url user@clientA.com
 ```
 vpntool --init --clients clientA,clientB,clientC --url my-vpn-server.com
 ```
-
-
-
-
-
-
