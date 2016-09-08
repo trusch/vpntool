@@ -156,7 +156,7 @@ var serverConfigTemplate = template.Must(template.New("serverConfig").Parse(serv
 var clientConfigTemplateString = `
 client
 dev tun
-proto udp
+proto tcp
 remote {{.URL}} 1194
 resolv-retry infinite
 nobind
