@@ -11,12 +11,12 @@ import (
 )
 
 // Init initializes an new VPN
-func Init(pkiDir, outputDirectory string) error {
+func Init(pkiDir, outputDirectory string, peerToPeer bool) error {
 	err := pki.Init(pkiDir)
 	if err != nil {
 		return err
 	}
-	return createServer(pkiDir, outputDirectory)
+	return createServer(pkiDir, outputDirectory, peerToPeer)
 }
 
 // CreateClient generates new keys and a openvpn configfile
@@ -53,7 +53,7 @@ func Deploy(configDir, id, target string) error {
 	return installCmd.Run()
 }
 
-func createServer(pkiDir, outputDirectory string) error {
+func createServer(pkiDir, outputDirectory string, peerToPeer bool) error {
 	err := pki.AddServer(pkiDir, "vpnserver")
 	if err != nil {
 		return err
@@ -62,11 +62,11 @@ func createServer(pkiDir, outputDirectory string) error {
 	if err != nil {
 		return err
 	}
-	return createServerConfig(pkiDir, outputDirectory)
+	return createServerConfig(pkiDir, outputDirectory, peerToPeer)
 }
 
 // createServerConfig generates a server config
-func createServerConfig(pkiDir, outputDirectory string) error {
+func createServerConfig(pkiDir, outputDirectory string, peerToPeer bool) error {
 	ca, err := getCA(pkiDir)
 	if err != nil {
 		return err
@@ -88,6 +88,9 @@ func createServerConfig(pkiDir, outputDirectory string) error {
 		Key:  key,
 		Cert: cert,
 		DH:   dh,
+	}
+	if peerToPeer {
+		opts.Additional = []string{"client-to-client"}
 	}
 	f, err := os.Create(outputDirectory + "/server.conf")
 	if err != nil {
@@ -138,6 +141,9 @@ persist-tun
 client-to-client
 status openvpn-status.log
 verb 3
+{{range .Additional}}
+{{.}}
+{{end}}
 <ca>
 {{.CA}}
 </ca>
@@ -178,11 +184,12 @@ verb 3
 var clientConfigTemplate = template.Must(template.New("clientConfig").Parse(clientConfigTemplateString))
 
 type templateOptions struct {
-	CA   string
-	Cert string
-	Key  string
-	DH   string
-	URL  string
+	CA         string
+	Cert       string
+	Key        string
+	DH         string
+	URL        string
+	Additional []string
 }
 
 func getFile(path string) (string, error) {

@@ -14,11 +14,12 @@ var initVPN = flag.Bool("init", false, "init vpn and create server")
 var addClient = flag.String("clients", "", "add client(s) to vpn (accepts comma separated list)")
 var deploy = flag.String("deploy", "", "deploy this entity to --url")
 var url = flag.String("url", "", "url to use")
+var peerToPeer = flag.Bool("peer-to-peer", true, "enable client to client communication")
 
 func main() {
 	flag.Parse()
 	if *initVPN {
-		if err := openvpn.Init(*pkiDir, *dir); err != nil {
+		if err := openvpn.Init(*pkiDir, *dir, *peerToPeer); err != nil {
 			log.Fatal(err)
 		}
 	}
