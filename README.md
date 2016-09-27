@@ -17,8 +17,12 @@ Usage of vpntool:
     	init vpn and create server
   -out string
     	ovpn directory (default ".")
+  -peer-to-peer
+    	enable client to client communication (default true)
   -pki string
     	pki directory (default "pki")
+  -revoke string
+    	revoke this client
   -url string
     	url to use
 ```
@@ -41,6 +45,11 @@ vpntool --deploy server --url user@my-vpn-server.com
 ### Deploy Client
 ```
 vpntool --deploy clientA --url user@clientA.com
+```
+
+### Revoke Client
+```
+vpntool --revoke clientA --url user@my-vpn-server.com
 ```
 
 ### One-Shot-Setup
