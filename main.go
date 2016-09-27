@@ -15,6 +15,7 @@ var addClient = flag.String("clients", "", "add client(s) to vpn (accepts comma 
 var deploy = flag.String("deploy", "", "deploy this entity to --url")
 var url = flag.String("url", "", "url to use")
 var peerToPeer = flag.Bool("peer-to-peer", true, "enable client to client communication")
+var revoke = flag.String("revoke", "", "revoke this client")
 
 func main() {
 	flag.Parse()
@@ -44,7 +45,12 @@ func main() {
 		if *url == "" {
 			log.Fatal("specify --url to point to your deploy target")
 		}
-		if err := openvpn.Deploy(*dir, *deploy, *url); err != nil {
+		if err := openvpn.Deploy(*dir, *pkiDir, *deploy, *url); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if *revoke != "" {
+		if err := openvpn.Revoke(*dir, *pkiDir, *revoke, *url); err != nil {
 			log.Fatal(err)
 		}
 	}

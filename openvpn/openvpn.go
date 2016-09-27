@@ -29,13 +29,14 @@ func CreateClient(pkiDir, id, url, outputDirectory string) error {
 }
 
 // Deploy deploys a vpn config
-func Deploy(configDir, id, target string) error {
-	copyScript := fmt.Sprintf(`scp %v/%v.conf %v:/tmp/`, configDir, id, target)
+func Deploy(configDir, pkiDir, id, target string) error {
+	copyScript := fmt.Sprintf(`scp %v/%v.conf %v/pki/crl.pem %v:/tmp/`, configDir, id, pkiDir, target)
 	installScript := fmt.Sprintf(`
     if ! dpkg-query -W openvpn; then
       sudo apt-get -y install openvpn
     fi
     sudo mv /tmp/%v.conf /etc/openvpn/
+		sudo mv /tmp/crl.pem /etc/openvpn/
     sudo systemctl enable openvpn@%v
     sudo systemctl start openvpn@%v
   `, id, id, id)
@@ -43,14 +44,48 @@ func Deploy(configDir, id, target string) error {
 	copyCmd.Stdout = os.Stdout
 	copyCmd.Stderr = os.Stderr
 	copyCmd.Stdin = os.Stdin
-	if err := copyCmd.Run(); err != nil {
+	if err := execScript(copyScript); err != nil {
 		return err
 	}
-	installCmd := exec.Command("ssh", "-t", target, installScript)
-	installCmd.Stdout = os.Stdout
-	installCmd.Stderr = os.Stderr
-	installCmd.Stdin = os.Stdin
-	return installCmd.Run()
+	return execScriptRemote(installScript, target)
+}
+
+// Revoke revokes a VPN clients certificate, and deploys the CRL to a server if last argument is non-empty
+func Revoke(configDir, pkiDir, id, serverTarget string) error {
+	if err := pki.Revoke(pkiDir, id); err != nil {
+		return err
+	}
+	deleteScript := fmt.Sprintf(`rm	%v/%v.conf`, configDir, id)
+	if err := execScript(deleteScript); err != nil {
+		return err
+	}
+	if serverTarget != "" {
+		copyScript := fmt.Sprintf(`scp %v/pki/crl.pem %v:/tmp/crl.pem`, pkiDir, serverTarget)
+		if err := execScript(copyScript); err != nil {
+			return err
+		}
+		installScript := fmt.Sprintf(`sudo mv /tmp/crl.pem /etc/openvpn/crl.pem`)
+		if err := execScriptRemote(installScript, serverTarget); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func execScript(script string) error {
+	cmd := exec.Command("bash", "-c", script)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
+}
+
+func execScriptRemote(script, target string) error {
+	cmd := exec.Command("ssh", "-t", target, script)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }
 
 func createServer(pkiDir, outputDirectory string, peerToPeer bool) error {
@@ -138,8 +173,8 @@ keepalive 10 120
 comp-lzo
 persist-key
 persist-tun
-client-to-client
 status openvpn-status.log
+crl-verify /etc/openvpn/crl.pem
 verb 3
 {{range .Additional}}
 {{.}}

@@ -13,6 +13,7 @@ var initCA = flag.Bool("init", false, "init a new CA in --pki")
 var addClient = flag.String("add-client", "", "client to create")
 var addServer = flag.String("add-server", "", "server to create")
 var createDH = flag.Bool("create-dh", false, "create Diffi Hellman parameters")
+var revoke = flag.String("revoke", "", "clients/servers to revoke")
 
 func main() {
 	flag.Parse()
@@ -53,6 +54,20 @@ func main() {
 	if *createDH {
 		if err := pki.CreateDH(*pkiDir); err != nil {
 			log.Fatal(err)
+		}
+	}
+	if *revoke != "" {
+		if strings.Index(*revoke, ",") > -1 {
+			entities := strings.Split(*revoke, ",")
+			for _, entity := range entities {
+				if err := pki.Revoke(*pkiDir, entity); err != nil {
+					log.Fatal(err)
+				}
+			}
+		} else {
+			if err := pki.Revoke(*pkiDir, *revoke); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }

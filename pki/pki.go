@@ -15,6 +15,7 @@ mv EasyRSA-3.0.1 %v;
 cd %v;
 ./easyrsa init-pki;
 echo default | ./easyrsa build-ca nopass;
+./easyrsa gen-crl;
   `, dir, dir)
 	return execScript(script)
 }
@@ -35,6 +36,19 @@ func AddClient(dir, clientID string) error {
 func CreateDH(dir string) error {
 	script := fmt.Sprintf(`cd %v && ./easyrsa gen-dh`, dir)
 	return execScript(script)
+}
+
+// Revoke revokes a client certificate, deletes all associated files and updates the crl.pem
+func Revoke(dir, clientID string) error {
+	revokeScript := fmt.Sprintf(`cd %v && yes yes | ./easyrsa revoke %v && ./easyrsa gen-crl`, dir, clientID)
+	if err := execScript(revokeScript); err != nil {
+		return err
+	}
+	deleteScript := fmt.Sprintf(`rm \
+		%v/pki/reqs/%v.req \
+		%v/pki/private/%v.key \
+		%v/pki/issued/%v.crt`, dir, clientID, dir, clientID, dir, clientID)
+	return execScript(deleteScript)
 }
 
 func execScript(script string) error {
